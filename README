@@ -1,0 +1,1 @@
+youtube-dl -f mp4 -o '%(playlist)s/%(playlist_index)03d.%(ext)s' https://www.youtube.com/playlist?list=PL9tY0BWXOZFt2TyOofWG0XwA8IDC8SGIN
