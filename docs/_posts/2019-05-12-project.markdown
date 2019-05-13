@@ -15,6 +15,14 @@ categories: jekyll update
 
 ## Approach
 
+### Data
+
+Our final dataset (and video ‘library’) consists of over 900 music videos downloaded from YouTube using the `youtube-dl` utility. 200 of these were downloaded from VEVO genre playlists, representing EDM (Electronic Dance Music) and Pop music videos from the last couple months; the other 700 were sourced from a [music video dataset ](https://github.com/csehong/VM-NET). From their 200K video list, we randomly sample approximately 700. This dataset includes videos across all genres, as well as unofficial and parody music videos. 
+
+After downloading, we use `ffmpeg` to split the videos into 10 second video and audio (.mp4 and .wav) clips. Each video/audio clip is labeled with a clip ID (unique) and video ID (shared between all clips of the same video). 
+
+We then use two off the shelf feature extractors, [YouTube-8M](https://research.google.com/youtube8m/) for video features and [AudioSet](https://research.google.com/audioset/). AudioSet uses a VGG-like architecture based on [Hershey17](https://ai.google/research/pubs/pub45611) and YouTube-8M uses a state of the art Inception network to extract a 128-feature PCA-ed and quantized vector per second. Thus, our model these as input a concatenated, 1280-feature vector for video and audio each. 
+
 ## Tools
 
 ## Results
