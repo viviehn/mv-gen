@@ -159,4 +159,15 @@ We may add those results to this page, but note that if they appear, they were a
 
 ## Lessons Learned
 
+The biggest lesson we learned was that working with the combined audio-video space required for this task is incredibly difficult for two main reasons.  First of all, the space’s size makes it incredibly hard to compile a representative dataset.  We tried to combat this by focusing our model to specific subsections of the dataset such as the same genre of music or a single video type in the video library.  
+
+Secondly, it was very hard to balance the number of parameters in our model.  On one hand, we needed a larger amount of parameters to effectively model the space we were targeting. On the other hand, however, our models seemed especially prone to quickly overfitting the training data.  To combat this concern, we implemented a very high dropout rate.  
+
+
 ## Contributions
+
+Vivien - 60%. Data collection and processing, overall network architecture/training regime, results generation, writeup.
+
+Jacob - 40%. Initial brainstorming and ideation, developing and coding initial feed-forward model. Results designs.
+
+Nataliya - 0%. Unfortunately, Nataliya did not contribute much throughout the initial planning stages, and disappeared in the weeks before the poster session. On the day of, she finally messaged us and offered to help, but we were unconvinced and did not feel there was much left for her to contribute to. We are happy to provide further details if needed.
