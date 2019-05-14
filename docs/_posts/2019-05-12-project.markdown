@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "MV-Gen Project Info"
+title:  "Just Press Play: Content-based Automatic Music Video Stitching"
 date:   2019-05-12 12:46:15 -0700
 categories: jekyll update
 ---
@@ -13,6 +13,22 @@ categories: jekyll update
 
 ## Problem Statement and Background
 
+In the modern music scene, more and more audio content is accompanied by visual aids.  Whether through music videos, album covers, promotional clips, or live lighting and visuals, music and video are closely linked. Despite this, creating videos to accurately match music can often be challenging for musicians. Therefore, musicians may want visuals to accompany the music they create, without having to design these themselves.   
+
+Our project aims to match input audio clips to similar video clips stored in a database.  With this tool, artists can stitch together visuals from music videos or other visual sources to generate visual accompaniments for their music.
+
+For technical evaluation, we planned to focus on both validation and training accuracy of our network.  Although training accuracy is not a good measure of the network’s ability to generalize to other data, it is a helpful informal metric for quickly evaluating the learning power of different network architectures.  Validation accuracy is a more accurate measure of the ability to generalize to data that it has never seen before.  
+
+We quantitatively use the Recall or Recovery@K metric, a common metric in “cross-modal retrieval” which measures the percentage of queries that recover a correct match in the top K matches. We achieve a 15-20% R@5.  
+
+We also planned to evaluate our model’s functionality by performing many real-world tests.  The most basic test is to pass in a song as audio input and generate an accompanying music video from our entire video library to judge its efficacy on fitting the style of music.  To further explore this, we also generated the three closest and farthest matches for a given audio input.  
+
+### Related Works
+
+* [Content-based Representations of Audio Using Siamese Networks](https://arxiv.org/abs/1710.10974) by Manocha et.al. retrieves semantically similar audio recordings given an audio clip input, and architecturally is the model most similar to ours. 
+* [Automatic Music Video Generation Based on Emotion Oriented Pseudo Song Prediction and Matching](https://www.iis.sinica.edu.tw/papers/whm/19822-F.pdf) by Lin et. al. uses a multi-task network to jointly learn the relationship among audio, video, and emotion. They achieve a 76% recovery accuracy, but utilize a much more complicated model.
+* [Content-Based Video-Music Retrieval Using Soft Intra-Modal Structure Constraint](https://arxiv.org/abs/1704.06761) by Hong et. al. is also very similar to ours, and achieves approximately the same recovery rate. Their model uses two separate networks to embed audio and video.
+
 ## Approach
 
 ### Data
@@ -21,11 +37,57 @@ Our final dataset (and video ‘library’) consists of over 900 music videos do
 
 After downloading, we use `ffmpeg` to split the videos into 10 second video and audio (.mp4 and .wav) clips. Each video/audio clip is labeled with a clip ID (unique) and video ID (shared between all clips of the same video). 
 
-We then use two off the shelf feature extractors, [YouTube-8M](https://research.google.com/youtube8m/) for video features and [AudioSet](https://research.google.com/audioset/). AudioSet uses a VGG-like architecture based on [Hershey17](https://ai.google/research/pubs/pub45611) and YouTube-8M uses a state of the art Inception network to extract a 128-feature PCA-ed and quantized vector per second. Thus, our model these as input a concatenated, 1280-feature vector for video and audio each. 
+We then use two off the shelf feature extractors, [YouTube-8M](https://research.google.com/youtube8m/) for video features and [AudioSet](https://research.google.com/audioset/). AudioSet uses a VGG-like architecture as described in [Hershey17](https://ai.google/research/pubs/pub45611) and YouTube-8M uses a state of the art Inception network to extract a 128-feature PCA-ed and quantized vector per second. Thus, our model these as input a concatenated, 1280-feature vector for video and audio each. 
+
+### Model
+
+Our baseline model is a single feed-forward network that aims to turn one feature vector (audio) into the other (video, or vice versa). It turns our task into a regression problem, aiming to embed the 1280-feature audio vector into video space by minimizing the MSE, using the video feature vector as ground truth. We use 4 fully connected layers with tanh activations and .3 dropout.
+
+![baseline model]({{ site.baseurl }}/assets/figs/baseline_model.png)
+<figcaption style="text-align:center">Fig 1. An architecture diagram of our baseline model, a single feed-forward network.</figcaption>
+
+<br>
+
+Our final model uses a similiarity siamese network approach, using a similar feed-forward model as a subnetwork. This time, the subnetwork consists of 4 fully-connected layers with dimensions [1024, 256, 128, 128] and .9 dropout. Both audio and video inputs are passed into copies of this subnetwork (sharing weights), and output a 128-feature embedding. 
+
+The dual networks are trained with batch size 16, alternating between batches comprised of matching (same clip label on audio and video) and non-matching (different clip label) pairs.  We use the ADAM optimizer with a learning rate of .0001 to minimize contrastive loss with L1=.001 and L2=.01 regularizers using some margin m=1 and supervised on the clip label, which aims to embed the video and audio vectors from the same clip into the same representation, and video and audio vectors from different clips into embeddings with at least distance m. We also experimented with supervising by the video label, but mostly just for visualization purposes (more in Results below).
+
+After we have a trained model, we can feed in a set of video clips (either previously seen by the network at training or not) to generate a library of embedded video clip. We can then feed in an audio clip and do a nearest neighbors lookup for the embedded audio. Feeding in audio clips of an entire song allows us to splice together a music video, using clips in our library.
+
+![final model]({{ site.baseurl }}/assets/figs/final_model.png)
+<figcaption style="text-align:center">Fig 2. An architecture diagram of our final model, a siamese network.</figcaption>
+
+<br>
 
 ## Tools
 
+We use two out of the box feature extractors for audio and video, since we don’t necessarily require any fine-tuning or specific way of features to be extracted; both YouTube-8M and AudioSet are intended for video and audio classification, so the features should be representative enough for our task as well. 
+
+`youtube-dl` and `ffmpeg` are very useful utilities, though `ffmpeg` can be quite slow. 
+
+Using the siamese network architecture is useful as it requires less data, since the subnetworks share weights. It is also well-suited for learning similarity.
+
+
 ## Results
+
+### Training & Data Partitioning
+
+We use our 900+ downloaded music video dataset that yields nearly 18,000 audio-video clip pairs. We use an 80:20:10 training:validation:test split and measure accuracy on a R@5 metric and a batch size of 100. 
+
+
+< Insert R@K table >
+
+### Discussion
+
+Our initial attempts at training the network had layer dimensions range from 1024 to 128, and dropouots set to .3 or .4; this resulted in severe overfitting on training data. The network would reach 100% training accuracy in 2-3 epochs and not learn anything. Part of the motivation to share weights between the subnetworks is to reduce trainable parameters, so we chose to embrace this and drastically reduce the layer dimensions and drastically increase the dropout rates. 
+
+< Insert model comparisons >
+
+### More Quantitative Results
+
+< Insert tSNE >
+
+### Qualitative Results
 
 ## Lessons Learned
 
