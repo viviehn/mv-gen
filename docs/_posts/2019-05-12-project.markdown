@@ -5,12 +5,6 @@ date:   2019-05-12 12:46:15 -0700
 categories: jekyll update
 ---
 
-## Test Video
-<video width="400" height="300" controls>
-  <source src="{{ site.baseurl }}/assets/videos/182.mp4" type="video/mp4">
-  Your browser does not support the controls tag.
-</video>
-
 ## Problem Statement and Background
 
 In the modern music scene, more and more audio content is accompanied by visual aids.  Whether through music videos, album covers, promotional clips, or live lighting and visuals, music and video are closely linked. Despite this, creating videos to accurately match music can often be challenging for musicians. Therefore, musicians may want visuals to accompany the music they create, without having to design these themselves.   
@@ -72,22 +66,70 @@ Using the siamese network architecture is useful as it requires less data, since
 
 ### Training & Data Partitioning
 
-We use our 900+ downloaded music video dataset that yields nearly 18,000 audio-video clip pairs. We use an 80:20:10 training:validation:test split and measure accuracy on a R@5 metric and a batch size of 100. 
+We use our 900+ downloaded music video dataset that yields nearly 18,000 audio-video clip pairs. We use an 80:20 training:validation test split and measure accuracy on a R@5 metric and a batch size of 100. 
 
 
-< Insert R@K table >
+### Best Model Results
+
+We present recall accuracy graphs for our best model. These are generated alongside training time, on random validation batches of size 100.
+
+
+Random | R@1 | R@5
+----|-----|------
+![model loss]({{ site.baseurl }}/assets/figs/random.svg){:width="300px"} | ![model loss]({{ site.baseurl }}/assets/figs/r1.svg){:width="300px"} | ![model loss]({{ site.baseurl }}/assets/figs/r5.svg){:width="300px"} 
+
+R@10 | R@25 
+----|----
+![model loss]({{ site.baseurl }}/assets/figs/r10.svg){:width="300px"} | ![model loss]({{ site.baseurl }}/assets/figs/r25.svg){:width="300px"}   
+
+
 
 ### Discussion
 
-Our initial attempts at training the network had layer dimensions range from 1024 to 128, and dropouots set to .3 or .4; this resulted in severe overfitting on training data. The network would reach 100% training accuracy in 2-3 epochs and not learn anything. Part of the motivation to share weights between the subnetworks is to reduce trainable parameters, so we chose to embrace this and drastically reduce the layer dimensions and drastically increase the dropout rates. 
+Our initial attempts at training the network had layer dimensions from 1024 to 128, and dropouots set to .3 or .4; this resulted in severe overfitting on training data. The network would reach 100% training accuracy in 2-3 epochs and not learn anything. Part of the motivation to share weights between the subnetworks is to reduce trainable parameters, so we chose to embrace this and drastically reduce the layer dimensions and drastically increase the dropout rates. 
 
-< Insert model comparisons >
+Training Loss | Training Accuracy R@5 | Validation Accuracy R@5
+----|----|----
+![model loss]({{ site.baseurl }}/assets/figs/loss_model.svg){:width="300px"}  |![model train acc]({{ site.baseurl }}/assets/figs/train_acc_model.svg){:width="300px"} | ![model val acc]({{ site.baseurl }}/assets/figs/val_acc_model.svg){:width="300px"}
+
+![model legend]({{ site.baseurl }}/assets/figs/model_legend.png){:width="200px"} Fig 4.
+
+Upon further investigation, we see that the layer dimensions has less effect -- our best performing model actually had its initial layer sized at 1024. It was truly the dropout rate that made a bigger difference, which makes sense; .9 is _much_ more aggressive.
+
+<br>
+
+We also show the effect of the margin in the contrastive loss:
+
+Training Loss | Training Accuracy R@5 | Validation Accuracy R@5
+----|----|----
+![margin loss]({{ site.baseurl }}/assets/figs/loss_margin.svg){:width="300px"}  |![margintrain acc]({{ site.baseurl }}/assets/figs/train_acc_margin.svg){:width="300px"} | ![margin val acc]({{ site.baseurl }}/assets/figs/val_acc_margin.svg){:width="300px"}
+
+![margin legend]({{ site.baseurl }}/assets/figs/margin_legend.png){:width="200px"} Fig 5.
+
+Apologies for the unfortunate use of orange twice :(. Nevertheless, we see that the higher margin values are much more successful.
+
+We saw no improvement for higher margin values such as 6, 8, or 10.
 
 ### More Quantitative Results
 
-< Insert tSNE >
+![tsne]({{ site.baseurl }}/assets/figs/tsne-1.png){:width="300px"} | ![tsne]({{ site.baseurl }}/assets/figs/tsne-2.png){:width="300px"}
+----|----
+![tsne]({{ site.baseurl }}/assets/figs/tsne-3.png){:width="300px"} |![tsne]({{ site.baseurl }}/assets/figs/tsne-4.png){:width="300px"} 
+
+<figcaption style="text-align:center">Fig 6. Various tSNE plots for clips labeled by video. Highlights videos 12, 60, and 80.</figcaption>
+
+ We can see that the model does a decent job at grouping most clips from the same video nearby one another -- i.e. embeds clips labeled with the same video ID nearby one another. Video 60's clips along that trail may suggest some temporal component.
+
 
 ### Qualitative Results
+
+<center>
+<video width="400" height="300" controls>
+  <source src="{{ site.baseurl }}/assets/videos/182.mp4" type="video/mp4">
+  Your browser does not support the controls tag.
+</video>
+<figcaption>Spliced together music video generated by our system.<br> You can see the original music video for reference here. <br>The network only ever sees the audio as input at look-up time.</figcaption>
+</center>
 
 ## Lessons Learned
 
